@@ -72,7 +72,7 @@
             <div id="resultLetter" class="text-6xl font-black text-yellow-400 mb-4 animate-bounce">A</div>
             
             <p class="text-xs uppercase tracking-widest text-slate-400 font-semibold mb-1">Time Remaining</p>
-            <div id="timerDisplay" class="text-4xl font-extrabold text-white tracking-wider">30s</div>
+            <div id="timerDisplay" class="text-4xl font-extrabold text-white tracking-wider">60s</div>
         </div>
     </div>
 
@@ -145,12 +145,9 @@
             // Each segment in degrees
             const degreesPerSegment = 360 / numSegments;
             
-            // Calculate exact rotation needed so that randomIndex lands at the top pointer (0 deg / 360 deg)
-            // Since canvas rotates clockwise, we calculate target degrees
+            // Calculate exact rotation needed so that randomIndex lands at the top pointer
             const extraSpins = 360 * 5; // 5 full rotations
             const targetSegmentAngle = randomIndex * degreesPerSegment;
-            
-            // We want the chosen segment to align with the top pointer (0 degrees)
             const rotationNeeded = extraSpins + (360 - targetSegmentAngle) + (degreesPerSegment / 2);
             currentTotalDegrees += rotationNeeded;
 
@@ -168,8 +165,8 @@
                 resultLetter.textContent = chosenLetter;
                 resultSection.classList.remove('hidden');
                 
-                // Start timer automatically
-                startTimer(30);
+                // Start timer automatically with 60 seconds
+                startTimer(60);
             }, 4000);
         }
 
