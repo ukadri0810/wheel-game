@@ -29,6 +29,7 @@
             border-radius: 50%;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             transition: transform 4s cubic-bezier(0.15, 0.9, 0.2, 1);
+            transform: rotate(0deg);
         }
         .pointer {
             position: absolute;
@@ -86,9 +87,9 @@
 
         const numSegments = letters.length;
         const arcSize = (2 * Math.PI) / numSegments;
-        let currentAngle = 0;
-        let isSpinning = false;
+        let currentTotalDegrees = 0;
         let timerInterval = null;
+        let isSpinning = false;
 
         const colors = [
             '#f43f5e', '#ec4899', '#d946ef', '#a855f7', '#8b5cf6', 
@@ -96,13 +97,13 @@
             '#10b981', '#22c55e', '#84cc16', '#eab308', '#f59e0b', '#f97316'
         ];
 
-        // Draw the wheel
-        function drawWheel(angleOffset = 0) {
+        // Draw the wheel once
+        function drawWheel() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const radius = canvas.width / 2;
 
             for (let i = 0; i < numSegments; i++) {
-                const angle = angleOffset + i * arcSize;
+                const angle = i * arcSize;
                 
                 // Draw slice
                 ctx.beginPath();
@@ -111,6 +112,8 @@
                 ctx.arc(radius, radius, radius - 5, angle, angle + arcSize);
                 ctx.lineTo(radius, radius);
                 ctx.fill();
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
                 ctx.stroke();
 
                 // Draw text
@@ -136,31 +139,55 @@
             resultSection.classList.add('hidden');
             clearInterval(timerInterval);
 
-            // Random spin amount (between 5 and 8 full rotations + random slice)
-            const randomSlice = Math.floor(Math.random() * numSegments);
-            const extraRotations = (5 + Math.floor(Math.random() * 3)) * 2 * Math.PI;
-            const targetAngle = currentAngle + extraRotations + (randomSlice * arcSize);
+            // Random index to land on
+            const randomIndex = Math.floor(Math.random() * numSegments);
+            
+            // Each segment in degrees
+            const degreesPerSegment = 360 / numSegments;
+            
+            // Calculate exact rotation needed so that randomIndex lands at the top pointer (0 deg / 360 deg)
+            // Since canvas rotates clockwise, we calculate target degrees
+            const extraSpins = 360 * 5; // 5 full rotations
+            const targetSegmentAngle = randomIndex * degreesPerSegment;
+            
+            // We want the chosen segment to align with the top pointer (0 degrees)
+            const rotationNeeded = extraSpins + (360 - targetSegmentAngle) + (degreesPerSegment / 2);
+            currentTotalDegrees += rotationNeeded;
 
-            const duration = 4000; // 4 seconds
-            const startTime = performance.now();
-            const startAngle = currentAngle;
+            // Apply rotation via CSS transition
+            canvas.style.transform = `rotate(${currentTotalDegrees}deg)`;
 
-            function animateSpin(currentTime) {
-                const elapsed = currentTime - startTime;
-                const progress = Math.min(elapsed / duration, 1);
+            // Wait for transition to finish (4 seconds)
+            setTimeout(() => {
+                isSpinning = false;
+                spinBtn.disabled = false;
+                spinBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+                // Display selected letter
+                const chosenLetter = letters[randomIndex];
+                resultLetter.textContent = chosenLetter;
+                resultSection.classList.remove('hidden');
                 
-                // Ease out cubic
-                const easeOut = 1 - Math.pow(1 - progress, 3);
-                currentAngle = startAngle + (targetAngle - startAngle) * easeOut;
+                // Start timer automatically
+                startTimer(30);
+            }, 4000);
+        }
 
-                drawWheel(currentAngle);
+        // Countdown timer function
+        function startTimer(seconds) {
+            let timeLeft = seconds;
+            timerDisplay.textContent = timeLeft + 's';
 
-                if (progress < 1) {
-                    requestAnimationFrame(animateSpin);
-                } else {
-                    isSpinning = false;
-                    spinBtn.disabled = false;
-                    spinBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                    
-                    // Calculate selected letter
-                    const normalized
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = timeLeft + 's';
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerDisplay.textContent = "Time's Up!";
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
