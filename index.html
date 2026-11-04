@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wheel Spin Challenge</title>
+    <!-- Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap');
+        body {
+            font-family: 'Outfit', sans-serif;
+        }
+        .wheel-container {
+            position: relative;
+            width: 320px;
+            height: 320px;
+            margin: 0 auto;
+        }
+        @media (min-width: 640px) {
+            .wheel-container {
+                width: 400px;
+                height: 400px;
+            }
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: transform 4s cubic-bezier(0.15, 0.9, 0.2, 1);
+        }
+        .pointer {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 30px solid #ef4444;
+            z-index: 20;
+            filter: drop-shadow(0 3px 3px rgba(0,0,0,0.3));
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 min-h-screen text-white flex flex-col items-center justify-center p-4">
+
+    <div class="max-w-md w-full bg-white/10 backdrop-blur-md rounded-3xl p-6 shadow-2xl border border-white/20 text-center">
+        <!-- Header -->
+        <h1 class="text-3xl font-extrabold tracking-tight mb-2 bg-gradient-to-r from-pink-400 to-yellow-400 bg-clip-text text-transparent">
+            Wheel Spin Challenge
+        </h1>
+        <p class="text-slate-300 text-sm mb-6">Spin the wheel to get your random letter and start the timer!</p>
+
+        <!-- Wheel Section -->
+        <div class="wheel-container mb-6">
+            <div class="pointer"></div>
+            <canvas id="wheelCanvas" width="400" height="400"></canvas>
+        </div>
+
+        <!-- Spin Button -->
+        <button id="spinBtn" onclick="spinWheel()" class="w-full py-4 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold text-lg rounded-2xl shadow-lg transform transition active:scale-95 mb-6">
+            SPIN THE WHEEL
+        </button>
+
+        <!-- Result & Timer Section (Hidden Initially) -->
+        <div id="resultSection" class="hidden bg-black/30 rounded-2xl p-5 border border-white/10 animate-fade-in">
+            <p class="text-xs uppercase tracking-widest text-pink-400 font-semibold mb-1">Your Letter</p>
+            <div id="resultLetter" class="text-6xl font-black text-yellow-400 mb-4 animate-bounce">A</div>
+            
+            <p class="text-xs uppercase tracking-widest text-slate-400 font-semibold mb-1">Time Remaining</p>
+            <div id="timerDisplay" class="text-4xl font-extrabold text-white tracking-wider">30s</div>
+        </div>
+    </div>
+
+    <script>
+        const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+        const spinBtn = document.getElementById('spinBtn');
+        const resultSection = document.getElementById('resultSection');
+        const resultLetter = document.getElementById('resultLetter');
+        const timerDisplay = document.getElementById('timerDisplay');
+
+        const numSegments = letters.length;
+        const arcSize = (2 * Math.PI) / numSegments;
+        let currentAngle = 0;
+        let isSpinning = false;
+        let timerInterval = null;
+
+        const colors = [
+            '#f43f5e', '#ec4899', '#d946ef', '#a855f7', '#8b5cf6', 
+            '#6366f1', '#3b82f6', '#0ea5e9', '#06b6d4', '#14b8a6', 
+            '#10b981', '#22c55e', '#84cc16', '#eab308', '#f59e0b', '#f97316'
+        ];
+
+        // Draw the wheel
+        function drawWheel(angleOffset = 0) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const radius = canvas.width / 2;
+
+            for (let i = 0; i < numSegments; i++) {
+                const angle = angleOffset + i * arcSize;
+                
+                // Draw slice
+                ctx.beginPath();
+                ctx.fillStyle = colors[i % colors.length];
+                ctx.moveTo(radius, radius);
+                ctx.arc(radius, radius, radius - 5, angle, angle + arcSize);
+                ctx.lineTo(radius, radius);
+                ctx.fill();
+                ctx.stroke();
+
+                // Draw text
+                ctx.save();
+                ctx.translate(radius, radius);
+                ctx.rotate(angle + arcSize / 2);
+                ctx.textAlign = 'right';
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 20px Outfit';
+                ctx.fillText(letters[i], radius - 25, 7);
+                ctx.restore();
+            }
+        }
+
+        drawWheel();
+
+        // Spin logic
+        function spinWheel() {
+            if (isSpinning) return;
+            isSpinning = true;
+            spinBtn.disabled = true;
+            spinBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            resultSection.classList.add('hidden');
+            clearInterval(timerInterval);
+
+            // Random spin amount (between 5 and 8 full rotations + random slice)
+            const randomSlice = Math.floor(Math.random() * numSegments);
+            const extraRotations = (5 + Math.floor(Math.random() * 3)) * 2 * Math.PI;
+            const targetAngle = currentAngle + extraRotations + (randomSlice * arcSize);
+
+            const duration = 4000; // 4 seconds
+            const startTime = performance.now();
+            const startAngle = currentAngle;
+
+            function animateSpin(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Ease out cubic
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+                currentAngle = startAngle + (targetAngle - startAngle) * easeOut;
+
+                drawWheel(currentAngle);
+
+                if (progress < 1) {
+                    requestAnimationFrame(animateSpin);
+                } else {
+                    isSpinning = false;
+                    spinBtn.disabled = false;
+                    spinBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    
+                    // Calculate selected letter
+                    const normalized
